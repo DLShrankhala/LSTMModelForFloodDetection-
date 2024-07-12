@@ -1,8 +1,9 @@
-import os
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import os
 from sklearn.preprocessing import MinMaxScaler
+from Group1.config import Column
 
 class DataProcessor:
     def __init__(self, state_path):
@@ -20,11 +21,11 @@ class DataProcessor:
                 try:
                     df = pd.read_csv(file_path)
                     print(f"File {file} loaded successfully with shape: {df.shape}")
-                    if 'DateTime' in df.columns:
-                        df['DateTime'] = pd.to_datetime(df['DateTime'])
-                        df.columns = ['DateTime', 'tmin', 'tmax', 'rainfall']
+                    if Column.DATE.value in df.columns:
+                        df[Column.DATE.value] = pd.to_datetime(df[Column.DATE.value])
+                        df.columns = [Column.DATE.value, Column.TMIN.value, Column.TMAX.value, Column.RAINFALL.value]
                         district = file.replace('_merged.csv', '')
-                        df['District'] = district
+                        df[Column.DISTRICT.value] = district
                         all_data.append(df)
                     else:
                         print(f"File {file} does not match the expected format.")
@@ -47,12 +48,12 @@ class DataProcessor:
 class FeatureEngineer:
     @staticmethod
     def create_features(data):
-        data['Year'] = data['DateTime'].dt.year
-        data['Month'] = data['DateTime'].dt.month
-        data['Day'] = data['DateTime'].dt.day
-        data['DayOfWeek'] = data['DateTime'].dt.dayofweek
-        data['DayOfYear'] = data['DateTime'].dt.dayofyear
-        data['WeekOfYear'] = data['DateTime'].dt.isocalendar().week
+        data['Year'] = data[Column.DATE.value].dt.year
+        data['Month'] = data[Column.DATE.value].dt.month
+        data['Day'] = data[Column.DATE.value].dt.day
+        data['DayOfWeek'] = data[Column.DATE.value].dt.dayofweek
+        data['DayOfYear'] = data[Column.DATE.value].dt.dayofyear
+        data['WeekOfYear'] = data[Column.DATE.value].dt.isocalendar().week
         return data
 
 class DataNormalizer:
@@ -60,7 +61,8 @@ class DataNormalizer:
         self.scaler = MinMaxScaler(feature_range=(0, 1))
 
     def normalize(self, data):
-        data[['tmin', 'tmax', 'rainfall']] = self.scaler.fit_transform(data[['tmin', 'tmax', 'rainfall']])
+        data[[Column.TMIN.value, Column.TMAX.value, Column.RAINFALL.value]] = self.scaler.fit_transform(
+            data[[Column.TMIN.value, Column.TMAX.value, Column.RAINFALL.value]])
         return data
 
     def inverse_transform(self, data, original_shape):
@@ -82,24 +84,16 @@ class DataVisualizer:
         self.data = data
 
     def plot_rainfall(self, district):
-        district_data = self.data[self.data['District'] == district]
+        district_data = self.data[self.data[Column.DISTRICT.value] == district]
 
         if district_data.empty:
             print(f"No data found for district: {district}")
             return
 
         plt.figure(figsize=(15, 6))
-        plt.plot(district_data['DateTime'], district_data['rainfall'], label=district)
+        plt.plot(district_data[Column.DATE.value], district_data[Column.RAINFALL.value], label=district)
         plt.xlabel('Date')
         plt.ylabel('Rainfall')
         plt.title(f'Rainfall Over Time in {district}')
         plt.legend()
-        plt.show()
-
-    def plot_feature_distribution(self, feature):
-        plt.figure(figsize=(15, 6))
-        plt.hist(self.data[feature], bins=50, alpha=0.6)
-        plt.xlabel(feature)
-        plt.ylabel('Frequency')
-        plt.title(f'Distribution of {feature}')
         plt.show()
