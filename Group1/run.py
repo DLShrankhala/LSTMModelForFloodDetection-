@@ -1,8 +1,11 @@
-from Core.data import DataProcessor, FeatureEngineer, DataNormalizer, DataSplitter, DataVisualizer
-from Core.model import LSTMTrainer, ModelVisualizer, evaluate_model
+import numpy as np
+from sklearn.metrics import mean_squared_error, r2_score
+from Group1.Core.data import DataProcessor, FeatureEngineer, DataNormalizer, DataSplitter, DataVisualizer
+from Group1.Core.model import LSTMTrainer, ModelVisualizer, ModelEvaluator
+from Group1.config import Column
 
 # Load and preprocess data
-bihar_path = "path/to/Dataset"
+bihar_path = "/media/shuryanshgupta001/New Volume/Web Scraping/dataset/complete_bihar"
 processor = DataProcessor(bihar_path)
 processor.load_data()
 data = processor.get_data()
@@ -16,17 +19,12 @@ data_normalizer = DataNormalizer()
 data = data_normalizer.normalize(data)
 
 # Filter data for a specific district
-district_data = data[data['District'].str.contains('Patna')]
+district_data = data[data[Column.DISTRICT.value].str.contains('Patna')]
 
 # Split data
 data_splitter = DataSplitter()
 time_steps = 30
-X, y = data_splitter.split_data(district_data[['tmin', 'tmax', 'rainfall']].values, time_steps)
-
-# data visualizations
-data_visualizer = DataVisualizer(data)
-data_visualizer.plot_rainfall('Patna')
-data_visualizer.plot_feature_distribution('rainfall')
+X, y = data_splitter.split_data(district_data[[Column.TMIN.value, Column.TMAX.value, Column.RAINFALL.value]].values, time_steps)
 
 # Reshape data for LSTM [samples, time_steps, features]
 X = X.reshape((X.shape[0], X.shape[1], X.shape[2]))
@@ -38,12 +36,24 @@ model = lstm_trainer.create_lstm_model((X.shape[1], X.shape[2]))
 # Experiment with different batch sizes and epochs
 model, history = lstm_trainer.train_model(model, X, y, epochs=200, batch_size=30)  # Adjust batch size and epochs
 
+# Make predictions
+predictions = model.predict(X)
+
+# Inverse transform predictions
+original_shape = (predictions.shape[0], 3)  # 3 columns: 'tmin', 'tmax', 'rainfall'
+predictions = data_normalizer.inverse_transform(predictions, original_shape)
+
+# Inverse transform actual data
+actual = data_normalizer.inverse_transform(y.reshape(-1, 1), original_shape)
+
 # Evaluate model
-original_shape = (X.shape[0], 3)  # 3 columns: 'tmin', 'tmax', 'rainfall'
-actual, predictions = evaluate_model(model, X, y, data_normalizer, original_shape)
+model_evaluator = ModelEvaluator()
+rmse, r2 = model_evaluator.evaluate_model(actual, predictions)
+model_evaluator.print_evaluation_metrics(rmse, r2)
 
-# Visualize results
-model_visualizer = ModelVisualizer(data)
+# Plot actual vs predicted
+model_visualizer = ModelVisualizer()
 model_visualizer.plot_actual_vs_predicted(actual, predictions)
-model_visualizer.plot_loss_history(history)
 
+# Plot loss history
+model_visualizer.plot_loss_history(history)
