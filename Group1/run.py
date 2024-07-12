@@ -5,7 +5,7 @@ from Group1.Core.model import LSTMTrainer, ModelVisualizer, ModelEvaluator
 from Group1.config import Column
 
 # Load and preprocess data
-bihar_path = "/media/shuryanshgupta001/New Volume/Web Scraping/dataset/complete_bihar"
+bihar_path = "path/to/dataet"
 processor = DataProcessor(bihar_path)
 processor.load_data()
 data = processor.get_data()
