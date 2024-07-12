@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
+import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
 
 class LSTMTrainer:
     @staticmethod
@@ -21,10 +22,8 @@ class LSTMTrainer:
         return model, history
 
 class ModelVisualizer:
-    def __init__(self, data):
-        self.data = data
-
-    def plot_actual_vs_predicted(self, actual, predicted):
+    @staticmethod
+    def plot_actual_vs_predicted(actual, predicted):
         plt.figure(figsize=(15, 6))
         plt.plot(actual, label='Actual')
         plt.plot(predicted, label='Predicted')
@@ -34,7 +33,8 @@ class ModelVisualizer:
         plt.legend()
         plt.show()
 
-    def plot_loss_history(self, history):
+    @staticmethod
+    def plot_loss_history(history):
         plt.figure(figsize=(15, 6))
         plt.plot(history.history['loss'], label='Training Loss')
         plt.plot(history.history['val_loss'], label='Validation Loss')
@@ -44,14 +44,14 @@ class ModelVisualizer:
         plt.legend()
         plt.show()
 
-def evaluate_model(model, X, y, data_normalizer, original_shape):
-    predictions = model.predict(X)
-    predictions = data_normalizer.inverse_transform(predictions, original_shape)
-    actual = data_normalizer.inverse_transform(y.reshape(-1, 1), original_shape)
+class ModelEvaluator:
+    @staticmethod
+    def evaluate_model(actual, predicted):
+        rmse = np.sqrt(mean_squared_error(actual, predicted))
+        r2 = r2_score(actual, predicted)
+        return rmse, r2
 
-    rmse = np.sqrt(mean_squared_error(actual, predictions))
-    r2 = r2_score(actual, predictions)
-    print(f'Root Mean Squared Error: {rmse}')
-    print(f'R-squared: {r2}')
-
-    return actual, predictions
+    @staticmethod
+    def print_evaluation_metrics(rmse, r2):
+        print(f'Root Mean Squared Error: {rmse}')
+        print(f'R-squared: {r2}')
